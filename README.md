@@ -13,15 +13,9 @@ or fetch SoLoader from Maven repository by adding the following to your
 compile 'com.facebook.soloader:soloader:0.1.0+'
 ```
 
-## Building from source
-To build SoLoader from source you'll need [Buck](https://buckbuild.com/).
-Once you have Buck installed execute following commands from the project root
-directory:
-```shell
-  buck fetch //...
-  buck build :soloader
-```
-The build command generates `buck-out/gen/soloader.aar` file.
+fork from https://github.com/facebook/SoLoader
+then build this with Gradle
+
 
 ## Join our community
 Please use our [issues page](https://github.com/facebook/soloader/issues) to let us know of any problems.
