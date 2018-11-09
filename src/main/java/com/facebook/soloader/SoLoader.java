@@ -135,6 +135,12 @@ public class SoLoader {
 
   public static final int SOLOADER_LOOK_IN_ZIP = (1 << 2);
 
+  /**
+   * In some contexts, using a backup so source in case of so corruption is not feasible e.g. lack
+   * of write permissions to the library path.
+   */
+  public static final int SOLOADER_DISABLE_BACKUP_SOSOURCE = (1 << 3);
+
   @GuardedBy("sSoSourcesLock")
   private static int sFlags;
 
@@ -253,9 +259,13 @@ public class SoLoader {
               soSources.add(0, sApplicationSoSource);
             }
 
-            sBackupSoSource = new ApkSoSource(context, SO_STORE_NAME_MAIN, apkSoSourceFlags);
-            Log.d(TAG, "adding backup  source: " + sBackupSoSource.toString());
-            soSources.add(0, sBackupSoSource);
+            if ((sFlags & SOLOADER_DISABLE_BACKUP_SOSOURCE) != 0) {
+              sBackupSoSource = null;
+            } else {
+              sBackupSoSource = new ApkSoSource(context, SO_STORE_NAME_MAIN, apkSoSourceFlags);
+              Log.d(TAG, "adding backup  source: " + sBackupSoSource.toString());
+              soSources.add(0, sBackupSoSource);
+            }
           }
         }
 
@@ -316,14 +326,9 @@ public class SoLoader {
               try {
                 synchronized (runtime) {
                   error =
-                      // the third argument of nativeLoad method was removed in Android P API
-                      Build.VERSION.SDK_INT <= 27
-                          ? (String)
-                              nativeLoadRuntimeMethod.invoke(
-                                  runtime, pathToSoFile, SoLoader.class.getClassLoader(), path)
-                          : (String)
-                              nativeLoadRuntimeMethod.invoke(
-                                  runtime, pathToSoFile, SoLoader.class.getClassLoader());
+                      (String)
+                          nativeLoadRuntimeMethod.invoke(
+                              runtime, pathToSoFile, SoLoader.class.getClassLoader(), path);
                   if (error != null) {
                     throw new UnsatisfiedLinkError(error);
                   }
@@ -356,7 +361,6 @@ public class SoLoader {
             try {
               File libFile = new File(libPath);
               MessageDigest digest = MessageDigest.getInstance("MD5");
-
               try (InputStream libInStream = new FileInputStream(libFile)) {
                 byte[] buffer = new byte[4096];
                 int bytesRead;
@@ -365,8 +369,9 @@ public class SoLoader {
                 }
                 digestStr = String.format("%32x", new BigInteger(1, digest.digest()));
               }
-
             } catch (IOException e) {
+              digestStr = e.toString();
+            } catch (SecurityException e) {
               digestStr = e.toString();
             } catch (NoSuchAlgorithmException e) {
               digestStr = e.toString();
@@ -378,19 +383,15 @@ public class SoLoader {
 
   @Nullable
   private static Method getNativeLoadRuntimeMethod() {
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M || Build.VERSION.SDK_INT > 27) {
       return null;
     }
 
     try {
       final Method method;
-      if (Build.VERSION.SDK_INT <= 27) {
-        method =
-            Runtime.class.getDeclaredMethod(
-                "nativeLoad", String.class, ClassLoader.class, String.class);
-      } else {
-        method = Runtime.class.getDeclaredMethod("nativeLoad", String.class, ClassLoader.class);
-      }
+      method =
+          Runtime.class.getDeclaredMethod(
+              "nativeLoad", String.class, ClassLoader.class, String.class);
 
       method.setAccessible(true);
       return method;
@@ -504,12 +505,6 @@ public class SoLoader {
   /* package */ static void loadLibraryBySoName(
       String soName, int loadFlags, StrictMode.ThreadPolicy oldPolicy) {
     loadLibraryBySoName(soName, null, null, loadFlags, oldPolicy);
-  }
-
-  public static Set<String> getLoadedLibraries() {
-    synchronized (SoLoader.class) {
-      return (HashSet<String>) sLoadedLibraries.clone();
-    }
   }
 
   private static boolean loadLibraryBySoName(
