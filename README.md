@@ -10,7 +10,7 @@ You can use [prebuilt aars](https://github.com/facebook/soloader/releases/latest
 or fetch SoLoader from Maven repository by adding the following to your
 `build.gradle` file:
 ```groovy
-compile 'com.facebook.soloader:soloader:0.1.0+'
+implementation 'com.facebook.soloader:soloader:0.1.0+'
 ```
 
 fork from https://github.com/facebook/SoLoader
