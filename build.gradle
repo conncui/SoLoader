@@ -9,12 +9,12 @@ android {
 
 
     defaultConfig {
-        minSdkVersion 9
+        minSdkVersion 19
         targetSdkVersion 23
         versionCode 1
         versionName "1.0"
 
-        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
     }
 
@@ -33,7 +33,7 @@ dependencies {
     /** if error ,hard code wiht
      * implementation "com.android.support:appcompat-v7:25.1.1"
      * */
-    implementation "com.android.support:appcompat-v7:$rootProject.ext.supportLibray"
+    implementation 'androidx.appcompat:appcompat:1.0.0'
     implementation 'com.google.code.findbugs:jsr305:3.0.2'
 
     testImplementation 'junit:junit:4.12'
